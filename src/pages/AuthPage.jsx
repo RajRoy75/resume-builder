@@ -17,7 +17,7 @@ function AuthPage() {
         <h2 className='text-2xl text-gray-700'>Authenticate</h2>
         <div className='flex flex-col lg:w-96 w-full justify-start items-center gap-6 '>
           <AuthButton Icon = {FaGoogle} label = {'Signin with Google'} provider = {'GoogleAuthProvider'}/>
-          <AuthButton Icon={FaGithub} label={"Signin with Github"} provider={'GitHubAuthProvider'}/>
+          <AuthButton Icon={FaGithub} label={"Signin with Github"} provider={'GithubAuthProvider'}/>
         </div>
       </div>
       {/* footer secton  */}
