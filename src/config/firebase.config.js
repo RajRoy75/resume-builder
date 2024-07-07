@@ -12,9 +12,13 @@ const firebaseConfig = {
     appId: process.env.REACT_APP_APP_ID,
     measurementId: process.env.REACT_APP_MEASUREMENT_ID
   };
-  
 
-  const app = getApps.length > 0 ? getApp() : initializeApp(firebaseConfig);
+let app;
+try {
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
   const auth = getAuth(app);
   const db =  getFirestore(app);
 

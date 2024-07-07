@@ -1,11 +1,22 @@
-import React from 'react'
+import React, { useEffect} from 'react'
 import { Logo } from '../assets'
 import Footer from '../components/Footer';
 import AuthButton from '../components/AuthButton';
-import {FaGoogle,FaGithub} from 'react-icons/fa6'
+import {FaGoogle,FaGithub} from 'react-icons/fa6';
+import useUser from '../hooks/useUser';
+import { useNavigate } from 'react-router-dom';
+
 
 
 function AuthPage() {
+
+  const {data,isLoading,isError} = useUser();
+  const navigate = useNavigate();
+  useEffect(()=>{
+    if(!isLoading && data){
+      navigate('/',{replace:true});
+    }
+  },[data,isLoading,navigate])
   return (
     <div className='auth-section'>
       {/* top section */}
@@ -20,6 +31,7 @@ function AuthPage() {
           <AuthButton Icon={FaGithub} label={"Signin with Github"} provider={'GithubAuthProvider'}/>
         </div>
       </div>
+      
       {/* footer secton  */}
     	<Footer/>
     </div>
