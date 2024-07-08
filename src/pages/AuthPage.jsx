@@ -5,6 +5,7 @@ import AuthButton from '../components/AuthButton';
 import {FaGoogle,FaGithub} from 'react-icons/fa6';
 import useUser from '../hooks/useUser';
 import { useNavigate } from 'react-router-dom';
+import MainSpinner from '../components/MainSpinner';
 
 
 
@@ -17,6 +18,11 @@ function AuthPage() {
       navigate('/',{replace:true});
     }
   },[data,isLoading,navigate])
+
+  if(isLoading){
+    return <MainSpinner/>
+  }
+
   return (
     <div className='auth-section'>
       {/* top section */}
