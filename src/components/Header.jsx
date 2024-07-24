@@ -8,6 +8,8 @@ import { HiLogout } from 'react-icons/hi';
 import { fadeInOutWithOpacity, slideUpAndDown } from '../animation';
 import { useQueryClient } from 'react-query';
 import { auth } from '../config/firebase.config';
+import { adminIds } from '../utils/helpers';
+import { toast } from 'react-toastify';
 
 function Header() {
     const { data, isLoading, isError } = useUser();
@@ -17,6 +19,7 @@ function Header() {
     const signOutUser = async () => {
         await auth.signOut().then(() => {
             queryClient.setQueryData('user', null);
+            toast("LogOut Succesfully");
         })
     }
     return (
@@ -70,7 +73,10 @@ function Header() {
                                             {/* menues */}
                                             <div className='w-full flex flex-col items-start gap-6 pt-6'>
                                                 <Link to={'/profile'} className='text-txtLight hover:text-txtDark text-base whitespace-nowrap'>My Account</Link>
-                                                <Link to={'/template/create'} className='text-txtLight hover:text-txtDark text-base whitespace-nowrap'>Add new template</Link>
+                                                {adminIds.includes(data?.uid) &&(
+                                                    <Link to={'/template/create'} className='text-txtLight hover:text-txtDark text-base whitespace-nowrap'>Add new template</Link>
+                                                )}
+                                                
                                                 <div className='w-full px-2 py-2 border-t border-gray-300 flex items-center justify-between group cursor-pointer' onClick={signOutUser}>
                                                     <p className='group-hover:text-txtDark text-txtLight'>Sign Out</p>
                                                     <HiLogout className='group-hover:text-txtDark text-txtLight' />
