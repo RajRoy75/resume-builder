@@ -10,9 +10,12 @@ import { useQueryClient } from 'react-query';
 import { auth } from '../config/firebase.config';
 import { adminIds } from '../utils/helpers';
 import { toast } from 'react-toastify';
+import useFilter from '../hooks/useFilter';
+import { IoClose } from 'react-icons/io5';
 
 function Header() {
-    const { data, isLoading, isError } = useUser();
+    const { data, isLoading, isError } = useUser();;
+    const {data:filterData} = useFilter();
     const [menu, setMenu] = useState(false);
 
     const queryClient = useQueryClient();
@@ -22,13 +25,31 @@ function Header() {
             toast("LogOut Succesfully");
         })
     }
+    const handleSearchTerm = (e)=>{
+        queryClient.setQueryData('globalFilter',{...queryClient.getQueryData('globalFilter'), searchTerm: e.target.value});
+    }
+    const clearFilter = ()=>{
+        queryClient.setQueryData('globalFilter',{...queryClient.getQueryData('globalFilter'), searchTerm: ""});
+    }
     return (
         <header className='w-full flex justify-between items-center px-4 py-3 lg:px-8 border-b border-gray-300  bg-bgPrimary z-50 gap-12 sticky top-0'>
             <Link to={'/'}>
                 <img src={Logo} alt="error" className='w-12 h-auto object-contain' />
             </Link>
             <div className='flex-1 border border-gray-300 px-4 py-1 rounded-md flex items-center justify-between bg-gray-200'>
-                <input type="text" placeholder='Search here...' className='flex-1 h-10 bg-transparent text-base font-semibold border-none focus:outline-none' />
+                <input 
+                value={filterData?.searchTerm ? filterData.searchTerm : ""}
+                onChange={handleSearchTerm}
+                type="text" 
+                placeholder='Search here...' 
+                className='flex-1 h-10 bg-transparent text-base font-semibold border-none focus:outline-none' />
+                <AnimatePresence>
+                    {filterData?.searchTerm.length > 0 && (
+                        <motion.div className='w-8 h-8 flex justify-center items-center bg-gray-300 rounded-md cursor-pointer active:scale-95 duration-150' {...fadeInOutWithOpacity} onClick={clearFilter}>
+                            <IoClose color='black' size={20}/>
+                    </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
             <AnimatePresence>
                 {isLoading ? (
