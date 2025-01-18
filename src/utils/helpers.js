@@ -1,3 +1,6 @@
+import {Template1, Template2, Template3, Template4, Template5} from '../components/designs';
+
+
 export const adminIds = ["104325891041827333320"];
 
 export const initialTags = [
@@ -53,4 +56,13 @@ export const initialTags = [
     },
     { id: "20", label: "Legal Counsel", value: "legal_counsel" },
   ];
+
+
+  export const templateData = [
+    {id:`template-${Date.now()}`, name: 'template1', component: Template1},
+    {id:`template-${Date.now()}`, name: 'template2', component: Template2},
+    {id:`template-${Date.now()}`, name: 'template3', component: Template3},
+    {id:`template-${Date.now()}`, name: 'template4', component: Template4},
+    {id:`template-${Date.now()}`, name: 'template5', component: Template5}
+  ]
   

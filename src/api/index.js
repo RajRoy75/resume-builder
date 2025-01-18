@@ -57,15 +57,37 @@ export const saveToCollection = async(user,data)=>{
     }
 }
 export const saveToFavourite = async(user,data)=>{
-    if(!user?.favourite?.includes(data?._id)){
-        const docRef = doc(db,'users',user?.uid);
-        await updateDoc(docRef,{favourite:arrayUnion(data?._id)})
+    if(!data?.favourites?.includes(user.uid)){
+        const docRef = doc(db,'templates',data?._id);
+        await updateDoc(docRef,{favourites:arrayUnion(user?.uid)})
         .then(()=> toast.success('Added to Favourite'))
         .catch((err)=> toast.error(`Error: ${err.message}`))
     }else{
-        const docRef = doc(db,'users',user?.uid);
-        await updateDoc(docRef,{favourite:arrayRemove(data?._id)})
+        const docRef = doc(db,'templates',data?._id);
+        await updateDoc(docRef,{favourites:arrayRemove(user?.uid)})
         .then(()=> toast.success('Remove from Favourite'))
         .catch((err)=> toast.error(`Error: ${err.message}`))
     }
 }
+
+
+export const getTemplateDetails = async (templateId)=>{
+    return new Promise((resolve,reject)=>{
+        const unsubscribe = onSnapshot(doc(db,"templates", templateId), (doc)=>{
+            resolve(doc.data());
+        });
+        return unsubscribe;
+    })
+}
+export const getTemplateDetailEditByUser = (uid, id) => {
+    return new Promise((resolve, reject) => {
+      const unsubscribe = onSnapshot(
+        doc(db, "users", uid, "resumes", id),
+        (doc) => {
+          resolve(doc.data());
+        }
+      );
+  
+      return unsubscribe;
+    });
+  };

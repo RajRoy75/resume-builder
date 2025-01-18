@@ -14,7 +14,7 @@ import useFilter from '../hooks/useFilter';
 import { IoClose } from 'react-icons/io5';
 
 function Header() {
-    const { data, isLoading, isError } = useUser();;
+    const { data, isLoading, isError } = useUser();
     const {data:filterData} = useFilter();
     const [menu, setMenu] = useState(false);
 

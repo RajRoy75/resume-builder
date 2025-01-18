@@ -4,9 +4,12 @@ import { fadeInOutWithOpacity, popInOutWithOpacityInXdirection, scaleInOut } fro
 import { BiFolderPlus, BiHeart, BiSolidFolderPlus, BiSolidHeart } from 'react-icons/bi';
 import useUser from '../hooks/useUser';
 import {saveToCollection, saveToFavourite} from '../api/index'
+import useTemplate from '../hooks/useTemplate';
+import { useNavigate } from 'react-router-dom';
 
 function TemplateDesign({ data, index }) {
   const{ data: user, refetch:userRefetch} = useUser();
+  const {refetch:templateRefetch} = useTemplate();
   const addToCollection = async (e) => {
     e.stopPropagation();
     await saveToCollection(user,data);
@@ -15,9 +18,13 @@ function TemplateDesign({ data, index }) {
   const addToFavourite = async (e) => {
     e.stopPropagation();
     await saveToFavourite(user,data);
-    userRefetch();
+    templateRefetch();
   }
   const [isHovered,setIsHovered] = useState(false);
+  const navigate = useNavigate();
+  const handleRouteNavigation = ()=>{
+    navigate(`/resumeDetail/${data?._id}`, {replace:true})
+  }
   return (
     <motion.div
       key={data?._id}
@@ -30,6 +37,7 @@ function TemplateDesign({ data, index }) {
           {isHovered && (
             <motion.div
             {...fadeInOutWithOpacity}
+            onClick={handleRouteNavigation}
             className='absolute inset-0 bg-[rgba(0,0,0,0.4)] flex flex-col items-center justify-start px-4 py-3 z-50 cursor-pointer'
           >
             <div className='flex flex-col items-end justify-start w-full gap-8'>
@@ -39,8 +47,8 @@ function TemplateDesign({ data, index }) {
               onHandle={addToCollection} 
               />
               <InnerBoxCard 
-              label={user?.favourite?.includes(data._id)? "Added to favourite":"Add to favourite"} 
-              Icon={user?.favourite?.includes(data._id)? BiSolidHeart:BiHeart} 
+              label={data?.favourites?.includes(user.uid)? "Added to favourite":"Add to favourite"} 
+              Icon={data?.favourites?.includes(user.uid)? BiSolidHeart:BiHeart} 
               onHandle={addToFavourite} 
               />
             </div>
