@@ -93,7 +93,7 @@ function Header() {
                                             )}
                                             {/* menues */}
                                             <div className='w-full flex flex-col items-start gap-6 pt-6'>
-                                                <Link to={'/profile'} className='text-txtLight hover:text-txtDark text-base whitespace-nowrap'>My Account</Link>
+                                                <Link to={`/profile/${data?.uid}`} className='text-txtLight hover:text-txtDark text-base whitespace-nowrap'>My Account</Link>
                                                 {adminIds.includes(data?.uid) &&(
                                                     <Link to={'/template/create'} className='text-txtLight hover:text-txtDark text-base whitespace-nowrap'>Add new template</Link>
                                                 )}

@@ -47,7 +47,7 @@ const Template1 = () => {
 
   const [imageAsset, setImageAsset] = useState({
     isImageLoading: false,
-    imageURL: null,
+    imageUrl: null,
   });
 
   const {
@@ -141,7 +141,7 @@ const Template1 = () => {
     if (resumeData?.userProfilePic) {
       setImageAsset((prevAsset) => ({
         ...prevAsset,
-        imageURL: resumeData?.userProfilePic,
+        imageUrl: resumeData?.userProfilePic,
       }));
     }
   }, [resumeData]);
@@ -183,7 +183,7 @@ const Template1 = () => {
         // You can now use the dataURL as needed, e.g., to display an image.
         setImageAsset((prevAsset) => ({
           ...prevAsset,
-          imageURL: dataURL,
+          imageUrl: dataURL,
         }));
       };
 
@@ -203,7 +203,7 @@ const Template1 = () => {
   const deleteImageObject = () => {
     setImageAsset((prevAsset) => ({
       ...prevAsset,
-      imageURL: null,
+      imageUrl: null,
     }));
   };
 
@@ -294,7 +294,7 @@ const Template1 = () => {
   const saveFormData = async () => {
     const timeStamp = serverTimestamp();
     const resume_id = `${templateName}-${user?.uid}`;
-    const imageURL = await getImage();
+    const imageUrl = await getImage();
     const _doc = {
       _id: loadedTemplateId,
       resume_id,
@@ -303,8 +303,8 @@ const Template1 = () => {
       experiences,
       skills,
       timeStamp,
-      userProfilePic: imageAsset.imageURL,
-      imageURL,
+      userProfilePic: imageAsset.imageUrl,
+      imageUrl,
     };
     console.log(_doc);
     setDoc(doc(db, "users", user?.uid, "resumes", resume_id), _doc)
@@ -494,7 +494,7 @@ const Template1 = () => {
           <div className="w-full h-auto grid grid-cols-12" ref={resumeRef}>
             <div className="col-span-4 bg-black flex flex-col items-center justify-start">
               <div className="w-full h-80 bg-gray-300 flex items-center justify-center">
-                {!imageAsset.imageURL ? (
+                {!imageAsset.imageUrl ? (
                   <React.Fragment>
                     <label className=" w-full cursor-pointer h-full">
                       <div className="w-full flex flex-col items-center justify-center h-full">
@@ -520,7 +520,7 @@ const Template1 = () => {
                 ) : (
                   <div className="relative w-full h-full overflow-hidden rounded-md">
                     <img
-                      src={imageAsset.imageURL}
+                      src={imageAsset.imageUrl}
                       alt="uploaded image"
                       className="w-full h-full object-cover"
                       loading="lazy"
