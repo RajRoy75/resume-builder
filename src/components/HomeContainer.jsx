@@ -49,7 +49,9 @@ const RenderATemplate = ({template})=>{
     )}
   </React.Fragment>
   )
-  
+
 }
 
 export default HomeContainer
+
+

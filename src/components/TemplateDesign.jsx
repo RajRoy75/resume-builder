@@ -47,8 +47,8 @@ function TemplateDesign({ data, index }) {
               onHandle={addToCollection} 
               />
               <InnerBoxCard 
-              label={data?.favourites?.includes(user.uid)? "Added to favourite":"Add to favourite"} 
-              Icon={data?.favourites?.includes(user.uid)? BiSolidHeart:BiHeart} 
+              label={data?.favourites?.includes(user?.uid)? "Added to favourite":"Add to favourite"} 
+              Icon={data?.favourites?.includes(user?.uid)? BiSolidHeart:BiHeart} 
               onHandle={addToFavourite} 
               />
             </div>
