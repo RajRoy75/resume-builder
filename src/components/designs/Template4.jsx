@@ -4,10 +4,9 @@ import {
   FaPhoneAlt, FaEnvelope, FaGlobe, FaMapMarkerAlt, FaCog, FaAddressBook,
   FaUpload, FaSpinner, FaLanguage, FaHeart, FaCircle
 } from 'react-icons/fa';
-import { FaPenToSquare } from "react-icons/fa6";
+import { FaPenToSquare, FaHouse } from "react-icons/fa6";
 import { BiSolidBookmarks } from 'react-icons/bi';
 import { BsFiletypePdf, BsFiletypePng, BsFiletypeJpg, BsFiletypeSvg } from 'react-icons/bs';
-// Routing/Data fetching hooks (Keep if used)
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "react-query";
 import useUser from "../../hooks/useUser";
@@ -19,12 +18,7 @@ import { db } from "../../config/firebase.config";
 import jsPDF from "jspdf";
 import { AnimatePresence, motion } from "framer-motion";
 import { fadeInOutWithOpacity, opacityINOut } from "../../animation/index.js";
-// Placeholder image if needed
-// import { TemplateTwo } from "../../assets";
-
-// Template4 component based on the provided design
 const Template4 = () => {
-  // Routing/ID setup (Adapt if not using react-router)
   const { pathname } = useLocation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,7 +27,7 @@ const Template4 = () => {
   const loadedTemplateId = searchParams.get("templateId");
 
   const [isEdit, setIsEdit] = useState(false);
-  const { data: user } = useUser(); // User hook
+  const { data: user } = useUser();
 
   const resumeRef = useRef(null);
 
@@ -227,29 +221,54 @@ const Template4 = () => {
     catch (error) { toast.error("Failed capture preview."); console.error("Capture Error:", error); return null; }
   };
 
-  const generatePDF = async () => { /* ... same as Template5, ensure A4 fit ... */
+  const generatePDF = async () => {
     const element = resumeRef.current;
-    if (!element) { toast.error("Cannot capture content."); return; }
+    if (!element) {
+      toast.error("Cannot capture content: Resume element not found.");
+      return;
+    }
+
     const toastId = toast.loading("Generating PDF...");
+
     try {
-      const dataUrl = await htmlToImage.toPng(element, { pixelRatio: 2 });
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const dataUrl = await htmlToImage.toPng(element, {
+        pixelRatio: 2,
+      });
+
       const img = new Image();
       img.src = dataUrl;
+
       img.onload = () => {
-        const aspectRatio = img.width / img.height;
-        let imgH = pdfHeight;
-        let imgW = imgH * aspectRatio;
-        if (imgW > pdfWidth) { imgW = pdfWidth; imgH = imgW / aspectRatio;}
-        const x = (pdfWidth - imgW) / 2;
-        pdf.addImage(dataUrl, 'PNG', x, 0, imgW, imgH); // Start at y=0
+        const imgWidthPx = img.width;
+        const imgHeightPx = img.height;
+        const aspectRatio = imgWidthPx / imgHeightPx;
+
+        const tempPdf = new jsPDF('p', 'mm', 'a4');
+        const pdfPageWidthMm = tempPdf.internal.pageSize.getWidth();
+
+        const pdfPageHeightMm = pdfPageWidthMm / aspectRatio;
+
+        const pdf = new jsPDF({
+          orientation: 'p',
+          unit: 'mm',
+          format: [pdfPageWidthMm, pdfPageHeightMm] // Custom page size [width, height]
+        });
+
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfPageWidthMm, pdfPageHeightMm);
+
         pdf.save(`${formData.fullname}_Resume.pdf`);
         toast.update(toastId, { render: "PDF Generated!", type: "success", isLoading: false, autoClose: 3000 });
       };
-      img.onerror = () => toast.update(toastId, { render: "Image load failed.", type: "error", isLoading: false, autoClose: 3000 });
-    } catch (error) { toast.update(toastId, { render: `PDF Error: ${error.message}`, type: "error", isLoading: false, autoClose: 3000 }); console.error("PDF Error:", error); }
+
+      img.onerror = (error) => {
+        console.error("Image loading failed:", error);
+        toast.update(toastId, { render: "Image load failed.", type: "error", isLoading: false, autoClose: 3000 });
+      };
+
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      toast.update(toastId, { render: `PDF Error: ${error.message || 'Unknown error'}`, type: "error", isLoading: false, autoClose: 3000 });
+    }
   };
 
   const generateImage = async (format = "jpeg") => { /* ... same as Template5 ... */
@@ -277,186 +296,225 @@ const Template4 = () => {
 
   return (
     <div className="flex flex-col items-center justify-start gap-4 p-4 lg:p-8 font-sans">
-      {/* Controls - Same as before */}
-      <div className="w-full max-w-4xl flex items-center justify-end gap-4 mb-4 px-4 print:hidden">
-        <div className={`flex items-center justify-center gap-1 px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 cursor-pointer shadow-sm`} onClick={toggleEditable}> {isEdit ? <FaPenToSquare className="text-sm text-gray-700" /> : <FaPencilAlt className="text-sm text-gray-700" />} <p className="text-sm text-gray-700">Edit</p> </div>
-        <button className={`flex items-center justify-center gap-1 px-3 py-1 rounded-md bg-blue-500 hover:bg-blue-600 text-white cursor-pointer shadow-sm disabled:opacity-50`} onClick={saveFormData} disabled={!user}> <BiSolidBookmarks className="text-sm" /> <p className="text-sm">Save</p> </button>
-        <div className="flex items-center justify-center gap-2"> <p className="text-sm text-gray-600">Download:</p> <BsFiletypePdf className="text-xl text-red-500 hover:text-red-700 cursor-pointer" onClick={generatePDF} title="Download PDF" /> <BsFiletypePng onClick={() => generateImage('png')} className="text-xl text-green-500 hover:text-green-700 cursor-pointer" title="Download PNG" /> <BsFiletypeJpg className="text-xl text-orange-500 hover:text-orange-700 cursor-pointer" onClick={() => generateImage('jpeg')} title="Download JPG" /> <BsFiletypeSvg onClick={() => generateImage('svg')} className="text-xl text-purple-500 hover:text-purple-700 cursor-pointer" title="Download SVG" /> </div>
+      <div className="w-full flex items-center gap-2 px-4">
+        <Link to={"/"} className="flex items-center justify-center gap-2 text-txtPrimary"> <FaHouse /> Home </Link>
+        <p className="text-txtPrimary cursor-pointer" onClick={() => navigate(-1)}> / {templateName} / </p>
+        <p>Edit</p>
       </div>
 
-      {/* Resume Template */}
-      <div className={`w-full max-w-4xl min-h-[1123px] bg-white shadow-lg overflow-hidden border-t-4 border-${primaryColor}`} ref={resumeRef}> {/* Added top border */}
-        <div className="grid grid-cols-12 min-h-[calc(1123px-4px)]"> {/* Adjust height for border */}
+      <div className="w-full lg:w-[1200px] flex flex-col items-center justify-start px-4 md:px-8 lg:px-16">
 
-          {/* Left Column (Light Teal Background) */}
-          <div className={`col-span-12 md:col-span-4 ${lightBgColor} text-gray-700 p-6 pt-8 relative`}>
-            {/* Name and Title */}
-            <div className="mb-6 text-center">
-              <EditableField name="fullname" value={formData.fullname} onChange={handleChange} isEdit={isEdit} placeholder="Full Name" className={`text-xl font-bold uppercase tracking-wide text-gray-800 text-center ${isEdit ? 'border-b border-gray-300' : ''}`} />
-              <EditableField name="title" value={formData.title} onChange={handleChange} isEdit={isEdit} placeholder="Your Title" className="text-xs uppercase tracking-wider text-gray-600 text-center" />
+        {/* Controls - Same as before */}
+        <div className="w-full max-w-4xl flex items-center justify-end gap-4 mb-4 px-4 print:hidden">
+          <div className="flex gap-2 mx-auto">
+            <div
+              className={`flex items-center justify-center gap-1 px-3 py-1 rounded-md cursor-pointer shadow-sm transition-colors duration-200 ease-in-out ${isEdit ? 'bg-yellow-200 hover:bg-yellow-300 ring-2 ring-yellow-400' : 'bg-gray-200 hover:bg-gray-300'}`}
+              onClick={toggleEditable}
+              title={isEdit ? "Finish Editing" : "Enable Editing"}
+            >
+              {isEdit ? (
+                <FaPenToSquare className="text-sm text-yellow-800" />
+              ) : (
+                  <FaPencilAlt className="text-sm text-txtPrimary" />
+                )}
+              <p className={`text-sm ${isEdit ? 'text-yellow-800 font-semibold' : 'text-txtPrimary'}`}>{isEdit ? "Editing" : "Edit"}</p>
             </div>
-
-            {/* Profile Image */}
-            <div className="flex justify-center mb-8">
-              <div className={`w-36 h-36 rounded-full border-4 border-white ${imageAsset.imageUrl ? '' : 'bg-gray-300'} overflow-hidden shadow-md group relative`}>
-                <label htmlFor="profile-pic-upload" className={`w-full h-full block cursor-${isEdit ? 'pointer' : 'default'}`}>
-                  {imageAsset.isImageLoading ? ( <div className="w-full h-full flex items-center justify-center bg-gray-400"><FaSpinner className="animate-spin text-3xl text-white" /></div> )
-                    : imageAsset.imageUrl ? ( <img src={imageAsset.imageUrl} alt="Profile" className="w-full h-full object-cover" /> )
-                      : ( <div className="w-full h-full flex flex-col items-center justify-center bg-gray-400 text-white text-center p-2"><FaUpload className="text-3xl mb-1"/><span className="text-xs">{isEdit ? 'Upload Image' : 'No Image'}</span></div> )}
-                </label>
-                {isEdit && <input type="file" id="profile-pic-upload" className="hidden" accept="image/jpeg, image/png, image/jpg" onChange={handleFileSelect} />}
-                {isEdit && imageAsset.imageUrl && !imageAsset.isImageLoading && (
-                  <div className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={deleteImageObject} title="Remove Image">
-                    <FaTrash className="text-white text-xs" />
-                  </div> )}
-              </div>
-            </div>
-
-            {/* Contact Me */}
-            <LeftSection title="Contact Me" icon={<FaUser />} color={primaryColor}>
-              <div className="space-y-2 text-xs">
-                <EditableField icon={<FaPhoneAlt size={10} className={`text-${primaryColor}`} />} name="phone" value={formData.phone} onChange={handleChange} isEdit={isEdit} placeholder="Phone" />
-                <EditableField icon={<FaGlobe size={10} className={`text-${primaryColor}`} />} name="website" value={formData.website} onChange={handleChange} isEdit={isEdit} placeholder="Website" />
-                <EditableField icon={<FaMapMarkerAlt size={10} className={`text-${primaryColor}`} />} name="address" value={formData.address} onChange={handleChange} isEdit={isEdit} placeholder="Address" />
-                {/* <EditableField icon={<FaEnvelope size={10} className={`text-${primaryColor}`} />} name="email" value={formData.email} onChange={handleChange} isEdit={isEdit} placeholder="Email"/> */}
-              </div>
-            </LeftSection>
-
-            {/* Education */}
-            <LeftSection title="Education" icon={<FaGraduationCap />} color={primaryColor}>
-              <div className="space-y-4">
-                <AnimatePresence>
-                  {education.map((edu, index) => (
-                    <motion.div key={index} {...opacityINOut(index)} className="text-xs relative group">
-                      <EditableField name="university" value={edu.university} onChange={(e) => handleEducationChange(index, e)} isEdit={isEdit} placeholder="University" className="font-semibold block mb-0.5 uppercase"/>
-                      <EditableField name="degree" value={edu.degree} onChange={(e) => handleEducationChange(index, e)} isEdit={isEdit} placeholder="Degree" className="block text-gray-600"/>
-                      <EditableField name="dates" value={edu.dates} onChange={(e) => handleEducationChange(index, e)} isEdit={isEdit} placeholder="Dates" className="text-gray-500 block text-[10px]"/>
-                      {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeEducation(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Edu"><FaTrash className="text-xs" /></motion.div>)}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-              {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-2"><button onClick={addEducation} className={`text-${primaryColor} hover:text-teal-700 flex items-center gap-1 text-xs`}><FaPlus /> Add Education</button></motion.div> )}
-            </LeftSection>
-
-            {/* References */}
-            <LeftSection title="References" icon={<FaAddressBook />} color={primaryColor}>
-              <div className="space-y-4">
-                <AnimatePresence>
-                  {references.map((ref, index) => (
-                    <motion.div key={index} {...opacityINOut(index)} className="text-xs relative group">
-                      <EditableField name="name" value={ref.name} onChange={(e) => handleReferenceChange(index, e)} isEdit={isEdit} placeholder="Reference Name" className="font-semibold block mb-1 uppercase"/>
-                      {/* Using textarea for multi-line details */}
-                      <EditableField as="textarea" name="details" value={ref.details} onChange={(e) => handleReferenceChange(index, e)} isEdit={isEdit} placeholder="Contact Details (Address, Tel, Email)" rows={5} className="text-gray-600 leading-snug"/>
-                      {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeReference(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Ref"><FaTrash className="text-xs" /></motion.div>)}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-              {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-2"><button onClick={addReference} className={`text-${primaryColor} hover:text-teal-700 flex items-center gap-1 text-xs`}><FaPlus /> Add Reference</button></motion.div> )}
-            </LeftSection>
-
+            <button
+              className="flex items-center justify-center gap-1 px-3 py-1 rounded-md bg-blue-500 hover:bg-blue-600 text-white cursor-pointer shadow-sm disabled:opacity-50 transition-colors duration-200 ease-in-out"
+              onClick={saveFormData}
+              disabled={!user}
+              title="Save Changes"
+            >
+              <BiSolidBookmarks className="text-sm" />
+              <p className="text-sm">Save</p>
+            </button>
           </div>
+          <div className="flex items-center justify-center gap-2"> 
+            <p className="text-sm text-gray-600">
+              Download:
+            </p> 
+            <BsFiletypePdf className="text-xl text-red-500 hover:text-red-700 cursor-pointer" onClick={generatePDF} title="Download PDF" />
+            <BsFiletypePng onClick={() => generateImage('png')} className="text-xl text-green-500 hover:text-green-700 cursor-pointer" title="Download PNG" />
+            <BsFiletypeJpg className="text-xl text-orange-500 hover:text-orange-700 cursor-pointer" onClick={() => generateImage('jpeg')} title="Download JPG" />
+            <BsFiletypeSvg onClick={() => generateImage('svg')} className="text-xl text-purple-500 hover:text-purple-700 cursor-pointer" title="Download SVG" />
+          </div>
+        </div>
 
-          {/* Vertical Separator Line */}
+        {/* Resume Template */}
+        <div className={`w-full max-w-4xl min-h-[1123px] bg-white shadow-lg overflow-hidden border-t-4 border-${primaryColor}`} ref={resumeRef}> {/* Added top border */}
+          <div className="grid grid-cols-12 min-h-[calc(1123px-4px)]"> {/* Adjust height for border */}
+
+            {/* Left Column (Light Teal Background) */}
+            <div className={`col-span-12 md:col-span-4 ${lightBgColor} text-gray-700 p-6 pt-8 relative`}>
+              {/* Name and Title */}
+              <div className="mb-6 text-center">
+                <EditableField name="fullname" value={formData.fullname} onChange={handleChange} isEdit={isEdit} placeholder="Full Name" className={`text-xl font-bold uppercase tracking-wide text-gray-800 text-center ${isEdit ? 'border-b border-gray-300' : ''}`} />
+                <EditableField name="title" value={formData.title} onChange={handleChange} isEdit={isEdit} placeholder="Your Title" className="text-xs uppercase tracking-wider text-gray-600 text-center" />
+              </div>
+
+              {/* Profile Image */}
+              <div className="flex justify-center mb-8">
+                <div className={`w-36 h-36 rounded-full border-4 border-white ${imageAsset.imageUrl ? '' : 'bg-gray-300'} overflow-hidden shadow-md group relative`}>
+                  <label htmlFor="profile-pic-upload" className={`w-full h-full block cursor-${isEdit ? 'pointer' : 'default'}`}>
+                    {imageAsset.isImageLoading ? ( <div className="w-full h-full flex items-center justify-center bg-gray-400"><FaSpinner className="animate-spin text-3xl text-white" /></div> )
+                      : imageAsset.imageUrl ? ( <img src={imageAsset.imageUrl} alt="Profile" className="w-full h-full object-cover" /> )
+                        : ( <div className="w-full h-full flex flex-col items-center justify-center bg-gray-400 text-white text-center p-2"><FaUpload className="text-3xl mb-1"/><span className="text-xs">{isEdit ? 'Upload Image' : 'No Image'}</span></div> )}
+                  </label>
+                  {isEdit && <input type="file" id="profile-pic-upload" className="hidden" accept="image/jpeg, image/png, image/jpg" onChange={handleFileSelect} />}
+                  {isEdit && imageAsset.imageUrl && !imageAsset.isImageLoading && (
+                    <div className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={deleteImageObject} title="Remove Image">
+                      <FaTrash className="text-white text-xs" />
+                    </div> )}
+                </div>
+              </div>
+
+              {/* Contact Me */}
+              <LeftSection title="Contact Me" icon={<FaUser />} color={primaryColor}>
+                <div className="space-y-2 text-xs">
+                  <EditableField icon={<FaPhoneAlt size={10} className={`text-${primaryColor}`} />} name="phone" value={formData.phone} onChange={handleChange} isEdit={isEdit} placeholder="Phone" />
+                  <EditableField icon={<FaGlobe size={10} className={`text-${primaryColor}`} />} name="website" value={formData.website} onChange={handleChange} isEdit={isEdit} placeholder="Website" />
+                  <EditableField icon={<FaMapMarkerAlt size={10} className={`text-${primaryColor}`} />} name="address" value={formData.address} onChange={handleChange} isEdit={isEdit} placeholder="Address" />
+                  {/* <EditableField icon={<FaEnvelope size={10} className={`text-${primaryColor}`} />} name="email" value={formData.email} onChange={handleChange} isEdit={isEdit} placeholder="Email"/> */}
+                </div>
+              </LeftSection>
+
+              {/* Education */}
+              <LeftSection title="Education" icon={<FaGraduationCap />} color={primaryColor}>
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {education.map((edu, index) => (
+                      <motion.div key={index} {...opacityINOut(index)} className="text-xs relative group">
+                        <EditableField name="university" value={edu.university} onChange={(e) => handleEducationChange(index, e)} isEdit={isEdit} placeholder="University" className="font-semibold block mb-0.5 uppercase"/>
+                        <EditableField name="degree" value={edu.degree} onChange={(e) => handleEducationChange(index, e)} isEdit={isEdit} placeholder="Degree" className="block text-gray-600"/>
+                        <EditableField name="dates" value={edu.dates} onChange={(e) => handleEducationChange(index, e)} isEdit={isEdit} placeholder="Dates" className="text-gray-500 block text-[10px]"/>
+                        {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeEducation(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Edu"><FaTrash className="text-xs" /></motion.div>)}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+                {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-2"><button onClick={addEducation} className={`text-${primaryColor} hover:text-teal-700 flex items-center gap-1 text-xs`}><FaPlus /> Add Education</button></motion.div> )}
+              </LeftSection>
+
+              {/* References */}
+              <LeftSection title="References" icon={<FaAddressBook />} color={primaryColor}>
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {references.map((ref, index) => (
+                      <motion.div key={index} {...opacityINOut(index)} className="text-xs relative group">
+                        <EditableField name="name" value={ref.name} onChange={(e) => handleReferenceChange(index, e)} isEdit={isEdit} placeholder="Reference Name" className="font-semibold block mb-1 uppercase"/>
+                        {/* Using textarea for multi-line details */}
+                        <EditableField as="textarea" name="details" value={ref.details} onChange={(e) => handleReferenceChange(index, e)} isEdit={isEdit} placeholder="Contact Details (Address, Tel, Email)" rows={5} className="text-gray-600 leading-snug"/>
+                        {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeReference(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Ref"><FaTrash className="text-xs" /></motion.div>)}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+                {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-2"><button onClick={addReference} className={`text-${primaryColor} hover:text-teal-700 flex items-center gap-1 text-xs`}><FaPlus /> Add Reference</button></motion.div> )}
+              </LeftSection>
+
+            </div>
+
+            {/* Vertical Separator Line */}
 
 
-          {/* Right Column (White Background) */}
-          <div className="col-span-12 md:col-span-8 bg-white p-8 relative">
-            {/* About Me */}
-            <RightSection title="About Me" icon={<FaUser />} color={primaryColor}>
-              <EditableField as="textarea" name="aboutMe" value={formData.aboutMe} onChange={handleChange} isEdit={isEdit} rows={5} placeholder="About you..." className="text-sm text-gray-600 leading-relaxed w-full" />
-            </RightSection>
+            {/* Right Column (White Background) */}
+            <div className="col-span-12 md:col-span-8 bg-white p-8 relative">
+              {/* About Me */}
+              <RightSection title="About Me" icon={<FaUser />} color={primaryColor}>
+                <EditableField as="textarea" name="aboutMe" value={formData.aboutMe} onChange={handleChange} isEdit={isEdit} rows={5} placeholder="About you..." className="text-sm text-gray-600 leading-relaxed w-full" />
+              </RightSection>
 
-            {/* Job Experience */}
-            <RightSection title="Job Experience" icon={<FaBriefcase />} color={primaryColor}>
-              <AnimatePresence>
-                {experiences.map((exp, index) => (
-                  <motion.div key={index} {...opacityINOut(index)} className="mb-5 relative group pl-5"> {/* Indent content */}
-                    <span className={`absolute left-0 top-1.5 w-2 h-2 ${primaryBgColor} rounded-full`}></span> {/* Bullet point */}
-                    <div className="flex justify-between items-start mb-1">
-                      {/* Flex item for title - allow grow */}
-                      <div className="flex-grow mr-4">
-                        <EditableField name="title" value={exp.title} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Job Title" className="text-base font-semibold text-gray-800"/>
-                      </div>
-                      {/* Flex item for dates - no grow, shrink */}
-                      <div className="flex-shrink-0">
-                        <EditableField name="dates" value={exp.dates} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Dates" className="text-xs text-gray-500 text-right"/>
-                      </div>
-                    </div>
-                    <div className='flex flex-col'>
-                      <EditableField name="companyLocation" value={exp.companyLocation} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Company / Location" className="text-sm text-gray-600 mb-1 italic"/>
-                      <EditableField as="textarea" name="description" value={exp.description} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Job description..." rows={3} className="text-xs text-gray-600 leading-normal"/>
-
-                    </div>
-                    {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeExperience(index)} className="absolute right-0 -top-1 cursor-pointer text-red-500 opacity-0 group-hover:opacity-100" title="Remove Exp"><FaTrash className="text-xs" /></motion.div>)}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-3"><button onClick={addExperience} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"><FaPlus /> Add Experience</button></motion.div> )}
-            </RightSection>
-
-            {/* Skills */}
-            <RightSection title="Skills" icon={<FaCog />} color={primaryColor}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+              {/* Job Experience */}
+              <RightSection title="Job Experience" icon={<FaBriefcase />} color={primaryColor}>
                 <AnimatePresence>
-                  {skills.map((skill, index) => (
-                    <motion.div key={index} {...opacityINOut(index)} className="relative group">
-                      <EditableField name="name" value={skill.name} onChange={(e) => handleSkillChange(index, e)} isEdit={isEdit} placeholder="Skill Name" className="text-sm text-gray-700 mb-1"/>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 relative overflow-hidden"> {/* Bar container */}
-                        <div className={`h-1.5 rounded-full ${primaryBgColor}`} style={{ width: `${skill.level}%` }}></div> {/* Bar */}
+                  {experiences.map((exp, index) => (
+                    <motion.div key={index} {...opacityINOut(index)} className="mb-5 relative group pl-5"> {/* Indent content */}
+                      <span className={`absolute left-0 top-1.5 w-2 h-2 ${primaryBgColor} rounded-full`}></span> {/* Bullet point */}
+                      <div className="flex justify-between items-start mb-1">
+                        {/* Flex item for title - allow grow */}
+                        <div className="flex-grow mr-4">
+                          <EditableField name="title" value={exp.title} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Job Title" className="text-base font-semibold text-gray-800"/>
+                        </div>
+                        {/* Flex item for dates - no grow, shrink */}
+                        <div className="flex-shrink-0">
+                          <EditableField name="dates" value={exp.dates} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Dates" className="text-xs text-gray-500 text-right"/>
+                        </div>
                       </div>
-                      {isEdit && (
-                        <>
-                          {/* Overlay range input for level adjustment */}
-                          <input type="range" name="level" min="0" max="100" step="5" value={skill.level} onChange={(e) => handleSkillChange(index, e)} className="w-full h-2 bg-transparent cursor-pointer appearance-none mt-1 absolute top-6 left-0 " title={`Level: ${skill.level}%`} />
-                          <span className="text-xs text-gray-500 absolute -right-8 top-4">{skill.level}%</span>
-                          <motion.div {...fadeInOutWithOpacity} onClick={() => removeSkill(index)} className="absolute right-[-25px] top-8 cursor-pointer text-red-500 opacity-0 group-hover:opacity-100" title="Remove Skill"><FaTrash className="text-xs" /></motion.div>
-                        </>
-                      )}
+                      <div className='flex flex-col'>
+                        <EditableField name="companyLocation" value={exp.companyLocation} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Company / Location" className="text-sm text-gray-600 mb-1 italic"/>
+                        <EditableField as="textarea" name="description" value={exp.description} onChange={(e) => handleExpChange(index, e)} isEdit={isEdit} placeholder="Job description..." rows={3} className="text-xs text-gray-600 leading-normal"/>
+
+                      </div>
+                      {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeExperience(index)} className="absolute right-0 -top-1 cursor-pointer text-red-500 opacity-0 group-hover:opacity-100" title="Remove Exp"><FaTrash className="text-xs" /></motion.div>)}
                     </motion.div>
                   ))}
                 </AnimatePresence>
+                {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-3"><button onClick={addExperience} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"><FaPlus /> Add Experience</button></motion.div> )}
+              </RightSection>
+
+              {/* Skills */}
+              <RightSection title="Skills" icon={<FaCog />} color={primaryColor}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                  <AnimatePresence>
+                    {skills.map((skill, index) => (
+                      <motion.div key={index} {...opacityINOut(index)} className="relative group">
+                        <EditableField name="name" value={skill.name} onChange={(e) => handleSkillChange(index, e)} isEdit={isEdit} placeholder="Skill Name" className="text-sm text-gray-700 mb-1"/>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 relative overflow-hidden"> {/* Bar container */}
+                          <div className={`h-1.5 rounded-full ${primaryBgColor}`} style={{ width: `${skill.level}%` }}></div> {/* Bar */}
+                        </div>
+                        {isEdit && (
+                          <>
+                            {/* Overlay range input for level adjustment */}
+                            <input type="range" name="level" min="0" max="100" step="5" value={skill.level} onChange={(e) => handleSkillChange(index, e)} className="w-full h-2 bg-transparent cursor-pointer appearance-none mt-1 absolute top-6 left-0 " title={`Level: ${skill.level}%`} />
+                            <span className="text-xs text-gray-500 absolute -right-8 top-4">{skill.level}%</span>
+                            <motion.div {...fadeInOutWithOpacity} onClick={() => removeSkill(index)} className="absolute right-[-25px] top-8 cursor-pointer text-red-500 opacity-0 group-hover:opacity-100" title="Remove Skill"><FaTrash className="text-xs" /></motion.div>
+                          </>
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+                {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-4"><button onClick={addSkill} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"><FaPlus /> Add Skill</button></motion.div> )}
+              </RightSection>
+
+              {/* Languages & Hobbies */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                {/* Languages */}
+                <RightSection title="Language" icon={<FaLanguage />} color={primaryColor}>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <AnimatePresence>
+                      {languages.map((lang, index) => (
+                        <motion.div key={index} {...opacityINOut(index)} className="flex items-center text-sm relative group">
+                          <span className={`w-1.5 h-1.5 ${primaryBgColor} rounded-full mr-2 flex-shrink-0`}></span>
+                          <EditableField name={`language-${index}`} value={lang} onChange={(e) => handleLanguageChange(index, e)} isEdit={isEdit} placeholder="Language" className="text-gray-700"/>
+                          {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeLanguage(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Lang"><FaTrash className="text-xs" /></motion.div>)}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                  {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-3"><button onClick={addLanguage} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs"><FaPlus /> Language</button></motion.div> )}
+                </RightSection>
+
+                {/* Hobbies */}
+                <RightSection title="Hobbies" icon={<FaHeart />} color={primaryColor}>
+                  <div className="space-y-2">
+                    <AnimatePresence>
+                      {hobbies.map((hobby, index) => (
+                        <motion.div key={index} {...opacityINOut(index)} className="flex items-center text-sm relative group">
+                          <span className={`w-1.5 h-1.5 ${primaryBgColor} rounded-full mr-2 flex-shrink-0`}></span>
+                          <EditableField name={`hobby-${index}`} value={hobby} onChange={(e) => handleHobbyChange(index, e)} isEdit={isEdit} placeholder="Hobby" className="text-gray-700"/>
+                          {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeHobby(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Hobby"><FaTrash className="text-xs" /></motion.div>)}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                  {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-3"><button onClick={addHobby} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs"><FaPlus /> Hobby</button></motion.div> )}
+                </RightSection>
               </div>
-              {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-4"><button onClick={addSkill} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"><FaPlus /> Add Skill</button></motion.div> )}
-            </RightSection>
-
-            {/* Languages & Hobbies */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
-              {/* Languages */}
-              <RightSection title="Language" icon={<FaLanguage />} color={primaryColor}>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                  <AnimatePresence>
-                    {languages.map((lang, index) => (
-                      <motion.div key={index} {...opacityINOut(index)} className="flex items-center text-sm relative group">
-                        <span className={`w-1.5 h-1.5 ${primaryBgColor} rounded-full mr-2 flex-shrink-0`}></span>
-                        <EditableField name={`language-${index}`} value={lang} onChange={(e) => handleLanguageChange(index, e)} isEdit={isEdit} placeholder="Language" className="text-gray-700"/>
-                        {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeLanguage(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Lang"><FaTrash className="text-xs" /></motion.div>)}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-                {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-3"><button onClick={addLanguage} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs"><FaPlus /> Language</button></motion.div> )}
-              </RightSection>
-
-              {/* Hobbies */}
-              <RightSection title="Hobbies" icon={<FaHeart />} color={primaryColor}>
-                <div className="space-y-2">
-                  <AnimatePresence>
-                    {hobbies.map((hobby, index) => (
-                      <motion.div key={index} {...opacityINOut(index)} className="flex items-center text-sm relative group">
-                        <span className={`w-1.5 h-1.5 ${primaryBgColor} rounded-full mr-2 flex-shrink-0`}></span>
-                        <EditableField name={`hobby-${index}`} value={hobby} onChange={(e) => handleHobbyChange(index, e)} isEdit={isEdit} placeholder="Hobby" className="text-gray-700"/>
-                        {isEdit && (<motion.div {...fadeInOutWithOpacity} onClick={() => removeHobby(index)} className="absolute right-0 top-0 cursor-pointer text-red-400 opacity-0 group-hover:opacity-100" title="Remove Hobby"><FaTrash className="text-xs" /></motion.div>)}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-                {isEdit && ( <motion.div {...fadeInOutWithOpacity} className="flex justify-center mt-3"><button onClick={addHobby} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs"><FaPlus /> Hobby</button></motion.div> )}
-              </RightSection>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
